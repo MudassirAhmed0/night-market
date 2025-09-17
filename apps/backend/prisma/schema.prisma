@@ -1,0 +1,130 @@
+// ---------- Generators & Datasources ----------
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Enums ----------
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+}
+
+// ---------- Models ----------
+model City {
+  id          String   @id @default(cuid())
+  name        String
+  country     String
+  countryCode String   @db.VarChar(2)
+  timezone    String
+  slug        String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  venues Venue[]
+
+  @@unique([name, countryCode]) // prevent duplicate city names within same country
+  @@index([slug])
+}
+
+model Venue {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  address   String
+  latitude  Float?
+  longitude Float?
+  images    String[] // urls
+  capacity  Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cityId String
+  city   City   @relation(fields: [cityId], references: [id], onDelete: Cascade)
+
+  events Event[]
+
+  @@unique([cityId, name]) // same venue name cannot repeat within a city
+  @@index([cityId])
+  @@index([slug])
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // explicit M:N via join model
+  eventLinks EventCategory[]
+}
+
+model Event {
+  id             String      @id @default(cuid())
+  title          String
+  slug           String      @unique
+  description    String?
+  startAt        DateTime
+  endAt          DateTime
+  ageRestriction Int?
+  status         EventStatus @default(PUBLISHED)
+  isFeatured     Boolean     @default(false)
+  coverImage     String?
+  gallery        String[]
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  venueId String
+  venue   Venue  @relation(fields: [venueId], references: [id], onDelete: Cascade)
+
+  // explicit M:N via join model
+  categoryLinks EventCategory[]
+
+  // 1:N
+  tickets TicketType[]
+
+  @@index([venueId])
+  @@index([startAt])
+  @@index([status])
+}
+
+model TicketType {
+  id            String   @id @default(cuid())
+  name          String // e.g., General, VIP, Early Bird
+  currency      String   @db.VarChar(3) // ISO 4217, e.g., EUR, USD
+  price         Decimal  @db.Decimal(10, 2)
+  quantityTotal Int
+  quantitySold  Int      @default(0)
+  salesStart    DateTime
+  salesEnd      DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@index([salesStart])
+  @@index([salesEnd])
+}
+
+// ---------- Explicit Join Model for Event <-> Category ----------
+model EventCategory {
+  eventId    String
+  categoryId String
+  addedAt    DateTime @default(now()) // example metadata column; keep/remove as you like
+
+  event    Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  // prefer composite PK to avoid duplicates and keep row lean
+  @@id([eventId, categoryId])
+  @@index([categoryId])
+  @@index([eventId])
+}
