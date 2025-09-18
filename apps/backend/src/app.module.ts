@@ -7,8 +7,8 @@ import { VenuesModule } from './venues/venues.module';
 import { LoggerModule } from 'nestjs-pino';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
-import { CacheHeadersInterceptor } from './common/interceptors/cache-header.interceptor';
-import { HttpExceptionFilter } from './common/filters/https-exception.filter';
+import { CacheHeaderInterceptor } from './common/interceptors/cache-header.interceptor';
+import { AllExceptionsFilter } from './common/filters/https-exception.filter';
 @Module({
   imports: [
     LoggerModule.forRoot({
@@ -30,8 +30,8 @@ import { HttpExceptionFilter } from './common/filters/https-exception.filter';
   providers: [
     AppService,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
-    { provide: APP_INTERCEPTOR, useClass: CacheHeadersInterceptor },
-    { provide: APP_FILTER, useClass: HttpExceptionFilter },
+    { provide: APP_INTERCEPTOR, useClass: CacheHeaderInterceptor },
+    { provide: APP_FILTER, useClass: AllExceptionsFilter },
   ],
 })
 export class AppModule {}

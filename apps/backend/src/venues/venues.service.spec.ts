@@ -7,7 +7,10 @@ describe('VenuesService (Unit)', () => {
   let service: VenuesService;
   beforeAll(async () => {
     const module = await Test.createTestingModule({
-      providers: [VenuesService, { provide: PrismaService, useValue: makePrismaMock() }],
+      providers: [
+        VenuesService,
+        { provide: PrismaService, useValue: makePrismaMock() as unknown as PrismaService },
+      ],
     }).compile();
 
     service = module.get(VenuesService);

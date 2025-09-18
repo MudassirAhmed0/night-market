@@ -1,41 +1,28 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
+import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
+import { Response, Request } from 'express';
 
 @Catch()
-export class HttpExceptionFilter implements ExceptionFilter {
+export class AllExceptionsFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
-    const res = ctx.getResponse();
-    const req = ctx.getRequest<Request & { method: string; url: string }>();
+    const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
 
-    const timestamp = new Date().toISOString();
+    let status = HttpStatus.INTERNAL_SERVER_ERROR;
+    let message: string | object = 'Internal server error';
 
     if (exception instanceof HttpException) {
-      const status = exception.getStatus();
-      const response: any = exception.getResponse();
-      const message =
-        typeof response === 'string' ? response : (response?.message ?? exception.message);
-
-      return res.status(status).json({
-        error: {
-          status,
-          message,
-          path: req.url,
-          method: req.method,
-          timestamp,
-        },
-      });
+      status = exception.getStatus();
+      message = exception.getResponse();
+    } else if (exception instanceof Error) {
+      message = exception.message;
     }
 
-    // Fallback for unhandled errors
-    const status = HttpStatus.INTERNAL_SERVER_ERROR;
-    res.status(status).json({
-      error: {
-        status,
-        message: 'Internal Server Error',
-        path: req.url,
-        method: req.method,
-        timestamp,
-      },
+    response.status(status).json({
+      statusCode: status,
+      message,
+      path: request.url,
+      timestamp: new Date().toISOString(),
     });
   }
 }

@@ -8,7 +8,10 @@ describe('EventsService (Unit)', () => {
 
   beforeAll(async () => {
     const module = await Test.createTestingModule({
-      providers: [EventsService, { provide: PrismaService, useValue: makePrismaMock() }],
+      providers: [
+        EventsService,
+        { provide: PrismaService, useValue: makePrismaMock() as unknown as PrismaService },
+      ],
     }).compile();
     service = module.get(EventsService);
   });
